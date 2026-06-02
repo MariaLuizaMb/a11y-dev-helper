@@ -1,0 +1,62 @@
+{
+  "name": "a11y-dev-helper",
+  "displayName": "a11y-dev-helper",
+  "description": "VS Code extension to detect basic accessibility issues in HTML and JSX.",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.120.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguage:html",
+    "onLanguage:javascriptreact",
+    "onLanguage:typescriptreact"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "A11y Dev Helper",
+      "properties": {
+        "a11yDevHelper.rules": {
+          "type": "object",
+          "description": "Enable or disable individual accessibility rules.",
+          "default": {
+            "img-missing-alt": true,
+            "link-generic-text": true,
+            "div-span-onclick": true,
+            "autofocus": true,
+            "html-missing-lang": true,
+            "input-missing-label": true,
+            "button-missing-name": true
+          }
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "a11y-dev-helper.helloWorld",
+        "title": "Hello World"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^22.19.19",
+    "@types/vscode": "^1.120.0",
+    "@vscode/test-cli": "^0.0.11",
+    "@vscode/test-electron": "^2.5.2",
+    "eslint": "^9.39.3",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.56.1"
+  }
+}
