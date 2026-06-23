@@ -25,11 +25,19 @@
           "default": {
             "img-missing-alt": true,
             "link-generic-text": true,
-            "div-span-onclick": true,
-            "autofocus": true,
-            "html-missing-lang": true,
+            "link-missing-href": true,
+            "button-missing-name": true,
+            "button-emoji-only": true,
             "input-missing-label": true,
-            "button-missing-name": true
+            "input-placeholder-no-label": true,
+            "div-span-onclick": true,
+            "tabindex-positive": true,
+            "autofocus": true,
+            "heading-order": true,
+            "html-missing-lang": true,
+            "iframe-missing-title": true,
+            "video-missing-track": true,
+            "table-missing-caption": true
           }
         }
       }
