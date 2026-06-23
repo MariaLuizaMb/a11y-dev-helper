@@ -37,7 +37,8 @@
             "html-missing-lang": true,
             "iframe-missing-title": true,
             "video-missing-track": true,
-            "table-missing-caption": true
+            "table-missing-caption": true,
+            "color-contrast": true
           }
         }
       }
