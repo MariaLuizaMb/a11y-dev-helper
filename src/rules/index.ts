@@ -16,6 +16,10 @@ import { headingOrderRule } from "./headingOrder";
 import { iframeTitleRule } from "./iframeTitle";
 import { videoTrackRule } from "./videoTrack";
 import { tableCaptionRule } from "./tableCaption";
+import { selectLabelRule } from "./selectLabel";
+import { fieldsetLegendRule } from "./fieldsetLegend";
+import { ariaRoleRule } from "./ariaRole";
+import { smallFontSizeRule } from "./smallFontSize";
 
 export const allRules: A11yRule[] = [
   imgAltRule,
@@ -34,4 +38,8 @@ export const allRules: A11yRule[] = [
   videoTrackRule,
   tableCaptionRule,
   colorContrastRule,
+  selectLabelRule,
+  fieldsetLegendRule,
+  ariaRoleRule,
+  smallFontSizeRule,
 ];
