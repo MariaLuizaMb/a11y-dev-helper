@@ -1,7 +1,8 @@
-// src/rules/imgAlt.ts
+// src/rules/tableCaption.ts
 import * as vscode from "vscode";
 import { A11yRule } from "../utils/diagnostics";
 import {
+  getAttr,
   getNodeLocation,
   hasParsedAttr,
   isElementNode,
@@ -10,21 +11,34 @@ import {
 } from "../utils/htmlAst";
 
 /**
- * Detects <img> elements without an alt attribute.
+ * Detects <table> elements without a <caption> child or accessible name attribute.
  *
- * Uses the shared parser for HTML, JSX and TSX so the check is driven by the
- * parsed structure rather than regex-based tag matching.
+ * The rule traverses the normalized AST for HTML, JSX and TSX documents.
  *
- * WCAG 1.1.1 Non-text Content (Level A)
+ * WCAG 1.3.1 Info and Relationships (Level A)
  */
-export const imgAltRule: A11yRule = {
-  id: "img-missing-alt",
+export const tableCaptionRule: A11yRule = {
+  id: "table-missing-caption",
   check(text, document) {
     const root = parseDocument(text, document.languageId);
     const diagnostics: vscode.Diagnostic[] = [];
 
     const visit = (node: ParsedNode): void => {
-      if (isElementNode(node) && node.tagName === "img" && !hasParsedAttr(node, "alt")) {
+      if (isElementNode(node) && node.tagName === "table") {
+        const hasAccessibleName = ["aria-label", "aria-labelledby", "summary"].some((name) =>
+          hasParsedAttr(node, name),
+        );
+        const hasCaption = (node.children ?? []).some(
+          (child) => isElementNode(child) && child.tagName === "caption",
+        );
+
+        if (hasAccessibleName || hasCaption) {
+          for (const child of node.children ?? []) {
+            visit(child);
+          }
+          return;
+        }
+
         const loc = getNodeLocation(node);
         const range = loc
           ? new vscode.Range(
@@ -36,7 +50,7 @@ export const imgAltRule: A11yRule = {
         diagnostics.push(
           new vscode.Diagnostic(
             range,
-            'Imagem sem atributo alt. Adicione uma descrição se a imagem transmitir informação ou use alt="" se for decorativa.',
+            "Tabela sem <caption> ou aria-label. Adicione um <caption> descritivo para que leitores de tela identifiquem o propósito da tabela.",
             vscode.DiagnosticSeverity.Warning,
           ),
         );

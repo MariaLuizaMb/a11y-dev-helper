@@ -1,30 +1,36 @@
-// src/rules/imgAlt.ts
+// src/rules/iframeTitle.ts
 import * as vscode from "vscode";
 import { A11yRule } from "../utils/diagnostics";
 import {
+  getAttr,
   getNodeLocation,
-  hasParsedAttr,
   isElementNode,
   parseDocument,
   type ParsedNode,
 } from "../utils/htmlAst";
 
 /**
- * Detects <img> elements without an alt attribute.
+ * Detects <iframe> elements without a non-empty title attribute.
  *
- * Uses the shared parser for HTML, JSX and TSX so the check is driven by the
- * parsed structure rather than regex-based tag matching.
- *
- * WCAG 1.1.1 Non-text Content (Level A)
+ * The check uses the normalized AST for HTML, JSX and TSX documents.
+ * WCAG 4.1.2 Name, Role, Value (Level A)
  */
-export const imgAltRule: A11yRule = {
-  id: "img-missing-alt",
+export const iframeTitleRule: A11yRule = {
+  id: "iframe-missing-title",
   check(text, document) {
     const root = parseDocument(text, document.languageId);
     const diagnostics: vscode.Diagnostic[] = [];
 
     const visit = (node: ParsedNode): void => {
-      if (isElementNode(node) && node.tagName === "img" && !hasParsedAttr(node, "alt")) {
+      if (isElementNode(node) && node.tagName === "iframe") {
+        const titleValue = getAttr(node, "title")?.trim();
+        if (titleValue) {
+          for (const child of node.children ?? []) {
+            visit(child);
+          }
+          return;
+        }
+
         const loc = getNodeLocation(node);
         const range = loc
           ? new vscode.Range(
@@ -36,7 +42,7 @@ export const imgAltRule: A11yRule = {
         diagnostics.push(
           new vscode.Diagnostic(
             range,
-            'Imagem sem atributo alt. Adicione uma descrição se a imagem transmitir informação ou use alt="" se for decorativa.',
+            "iframe sem atributo title. Adicione um title descritivo para que leitores de tela identifiquem o conteúdo do frame.",
             vscode.DiagnosticSeverity.Warning,
           ),
         );

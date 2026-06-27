@@ -1,4 +1,4 @@
-// src/rules/imgAlt.ts
+// src/rules/linkNoHref.ts
 import * as vscode from "vscode";
 import { A11yRule } from "../utils/diagnostics";
 import {
@@ -9,22 +9,15 @@ import {
   type ParsedNode,
 } from "../utils/htmlAst";
 
-/**
- * Detects <img> elements without an alt attribute.
- *
- * Uses the shared parser for HTML, JSX and TSX so the check is driven by the
- * parsed structure rather than regex-based tag matching.
- *
- * WCAG 1.1.1 Non-text Content (Level A)
- */
-export const imgAltRule: A11yRule = {
-  id: "img-missing-alt",
+/** Detects <a> elements without an href attribute, which are not keyboard-focusable by default. */
+export const linkNoHrefRule: A11yRule = {
+  id: "link-missing-href",
   check(text, document) {
     const root = parseDocument(text, document.languageId);
     const diagnostics: vscode.Diagnostic[] = [];
 
     const visit = (node: ParsedNode): void => {
-      if (isElementNode(node) && node.tagName === "img" && !hasParsedAttr(node, "alt")) {
+      if (isElementNode(node) && node.tagName === "a" && !hasParsedAttr(node, "href")) {
         const loc = getNodeLocation(node);
         const range = loc
           ? new vscode.Range(
@@ -36,7 +29,7 @@ export const imgAltRule: A11yRule = {
         diagnostics.push(
           new vscode.Diagnostic(
             range,
-            'Imagem sem atributo alt. Adicione uma descrição se a imagem transmitir informação ou use alt="" se for decorativa.',
+            "Link sem atributo href. Sem href, o elemento não é focável pelo teclado. Use um <button> para ações ou adicione um href válido.",
             vscode.DiagnosticSeverity.Warning,
           ),
         );

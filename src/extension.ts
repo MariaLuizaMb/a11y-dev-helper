@@ -1,6 +1,7 @@
 // src/extension.ts
 import * as vscode from "vscode";
 import { allRules } from "./rules";
+import { parseDocument } from "./utils/htmlAst";
 
 const SUPPORTED_LANGUAGES = new Set([
   "html",
@@ -18,17 +19,27 @@ function analyzeDocument(
   }
 
   const text = document.getText();
+  const ast = parseDocument(
+      text,
+      document.languageId
+  );
+  
   const config = vscode.workspace.getConfiguration("a11yDevHelper");
   const rulesConfig = config.get<Record<string, boolean>>("rules") ?? {};
 
   const allDiagnostics = allRules
     .filter((rule) => rulesConfig[rule.id] !== false)
-    .flatMap((rule) =>
-      rule.check(text, document).map((diagnostic) => {
-        diagnostic.code = rule.id;
-        return diagnostic;
-      }),
-    );
+    .flatMap((rule) => {
+      try {
+        return rule.check(text, document, ast).map((diagnostic) => {
+          diagnostic.code = rule.id;
+          return diagnostic;
+        });
+      } catch (error) {
+        console.warn(`A11y rule ${rule.id} failed:`, error);
+        return [];
+      }
+    });
 
   collection.set(document.uri, allDiagnostics);
 }

@@ -1,24 +1,27 @@
-// src/rules/divSpanOnClick.ts
+// src/rules/tabIndexPositive.ts
 import * as vscode from "vscode";
 import { A11yRule } from "../utils/diagnostics";
 import {
+  getAttr,
   getNodeLocation,
-  hasParsedAttr,
   isElementNode,
   parseDocument,
   type ParsedNode,
 } from "../utils/htmlAst";
 
-/** Detects non-semantic div/span elements with click handlers. */
-export const divSpanOnClickRule: A11yRule = {
-  id: "div-span-onclick",
+/** Detects elements with tabIndex/tabindex greater than 0, which disrupts natural tab order. */
+export const tabIndexPositiveRule: A11yRule = {
+  id: "tabindex-positive",
   check(text, document) {
     const root = parseDocument(text, document.languageId);
     const diagnostics: vscode.Diagnostic[] = [];
 
     const visit = (node: ParsedNode): void => {
-      if (isElementNode(node) && (node.tagName === "div" || node.tagName === "span")) {
-        if (hasParsedAttr(node, "onclick")) {
+      if (isElementNode(node)) {
+        const value = getAttr(node, "tabindex");
+        const parsedValue = value !== undefined ? Number.parseInt(value, 10) : Number.NaN;
+
+        if (!Number.isNaN(parsedValue) && parsedValue > 0) {
           const loc = getNodeLocation(node);
           const range = loc
             ? new vscode.Range(
@@ -30,7 +33,7 @@ export const divSpanOnClickRule: A11yRule = {
           diagnostics.push(
             new vscode.Diagnostic(
               range,
-              "Elemento não semântico com evento de clique. Considere usar um <button> ou adicionar suporte adequado a teclado, role e tabIndex.",
+              "tabIndex com valor positivo altera a ordem natural de foco e pode confundir usuários de teclado. Prefira tabIndex={0} ou tabIndex={-1}.",
               vscode.DiagnosticSeverity.Warning,
             ),
           );

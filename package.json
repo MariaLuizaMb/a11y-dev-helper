@@ -25,11 +25,24 @@
           "default": {
             "img-missing-alt": true,
             "link-generic-text": true,
-            "div-span-onclick": true,
-            "autofocus": true,
-            "html-missing-lang": true,
+            "link-missing-href": true,
+            "button-missing-name": true,
+            "button-emoji-only": true,
             "input-missing-label": true,
-            "button-missing-name": true
+            "input-placeholder-no-label": true,
+            "select-missing-label": true,
+            "fieldset-missing-legend": true,
+            "div-span-onclick": true,
+            "tabindex-positive": true,
+            "autofocus": true,
+            "aria-invalid-role": true,
+            "heading-order": true,
+            "html-missing-lang": true,
+            "small-font-size": true,
+            "iframe-missing-title": true,
+            "video-missing-track": true,
+            "table-missing-caption": true,
+            "color-contrast": true
           }
         }
       }
@@ -46,8 +59,18 @@
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
+    "package": "vsce package",
     "lint": "eslint src",
     "test": "vscode-test"
+  },
+  "dependencies": {
+    "@babel/parser": "^8.0.0",
+    "@babel/traverse": "^8.0.0",
+    "css-select": "^7.0.0",
+    "domhandler": "^6.0.1",
+    "domutils": "^4.0.2",
+    "htmlparser2": "^12.0.0",
+    "parse5": "^7.2.1"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",

@@ -1,4 +1,4 @@
-// src/rules/inputLabel.ts
+// src/rules/inputPlaceholderNoLabel.ts
 import * as vscode from "vscode";
 import { A11yRule } from "../utils/diagnostics";
 import {
@@ -9,9 +9,12 @@ import {
   type ParsedNode,
 } from "../utils/htmlAst";
 
-/** Detects input fields without an accessible label. */
-export const inputLabelRule: A11yRule = {
-  id: "input-missing-label",
+/**
+ * Detects <input> elements that rely solely on placeholder as a label.
+ * placeholder disappears on typing and is not reliably announced by screen readers.
+ */
+export const inputPlaceholderNoLabelRule: A11yRule = {
+  id: "input-placeholder-no-label",
   check(text, document) {
     const ignoredInputTypes = new Set(["hidden", "submit", "reset", "button", "image"]);
 
@@ -41,12 +44,13 @@ export const inputLabelRule: A11yRule = {
           return;
         }
 
+        const hasPlaceholder = getAttr(node, "placeholder") !== undefined;
         const hasAccessibleName = ["aria-label", "aria-labelledby", "title"].some((name) =>
           Boolean(getAttr(node, name)),
         );
         const inputId = getAttr(node, "id");
 
-        if (!hasAccessibleName && !(inputId && labelledInputIds.has(inputId))) {
+        if (hasPlaceholder && !hasAccessibleName && !(inputId && labelledInputIds.has(inputId))) {
           const loc = getNodeLocation(node);
           const range = loc
             ? new vscode.Range(
@@ -58,7 +62,7 @@ export const inputLabelRule: A11yRule = {
           diagnostics.push(
             new vscode.Diagnostic(
               range,
-              "Campo sem label acessível. Associe um <label>, ou use aria-label / aria-labelledby.",
+              "Campo usando placeholder como único rótulo. O placeholder desaparece ao digitar e não substitui um <label> ou aria-label.",
               vscode.DiagnosticSeverity.Warning,
             ),
           );

@@ -1,8 +1,7 @@
-// src/rules/buttonName.ts
+// src/rules/selectLabel.ts
 import * as vscode from "vscode";
 import { A11yRule, makeDiagnostic } from "../utils/diagnostics";
 import {
-  collectTextContent,
   getAttr,
   getNodeLocation,
   isElementNode,
@@ -10,21 +9,40 @@ import {
   type ParsedNode,
 } from "../utils/htmlAst";
 
-/** Detects buttons without visible text or another accessible name. */
-export const buttonNameRule: A11yRule = {
-  id: "button-missing-name",
+/**
+ * Detects <select> elements without an accessible label.
+ * Mirrors the same two-pass strategy used by inputLabel.ts.
+ */
+export const selectLabelRule: A11yRule = {
+  id: "select-missing-label",
   check(text, document) {
     const root = parseDocument(text, document.languageId);
+    const labelledIds = new Set<string>();
     const diagnostics: vscode.Diagnostic[] = [];
 
+    const collectLabels = (node: ParsedNode): void => {
+      if (isElementNode(node) && node.tagName === "label") {
+        const forValue = getAttr(node, "for") ?? getAttr(node, "htmlfor");
+        if (forValue) {
+          labelledIds.add(forValue);
+        }
+      }
+
+      for (const child of node.children ?? []) {
+        collectLabels(child);
+      }
+    };
+
+    collectLabels(root);
+
     const visit = (node: ParsedNode): void => {
-      if (isElementNode(node) && node.tagName === "button") {
+      if (isElementNode(node) && node.tagName === "select") {
         const hasAccessibleName = ["aria-label", "aria-labelledby", "title"].some(
           (name) => Boolean(getAttr(node, name)),
         );
-        const visibleText = collectTextContent(node).trim();
+        const selectId = getAttr(node, "id");
 
-        if (!hasAccessibleName && visibleText.length === 0) {
+        if (!hasAccessibleName && !(selectId && labelledIds.has(selectId))) {
           const loc = getNodeLocation(node);
           const range = loc
             ? new vscode.Range(
@@ -36,7 +54,7 @@ export const buttonNameRule: A11yRule = {
           diagnostics.push(
             new vscode.Diagnostic(
               range,
-              "Botão sem nome acessível. Adicione um texto visível, aria-label ou title.",
+              "Campo <select> sem label acessível. Associe um <label>, ou use aria-label / aria-labelledby.",
               vscode.DiagnosticSeverity.Warning,
             ),
           );

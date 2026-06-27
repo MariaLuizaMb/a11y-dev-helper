@@ -1,6 +1,34 @@
 // src/rules/linkText.ts
 import * as vscode from "vscode";
-import { A11yRule, makeDiagnostic } from "../utils/diagnostics";
+import { A11yRule } from "../utils/diagnostics";
+import {
+  collectTextContent,
+  getNodeLocation,
+  isElementNode,
+  parseDocument,
+  type ParsedNode,
+} from "../utils/htmlAst";
+
+function normalizeWhitespace(value: string): string {
+  let result = "";
+  let previousWasWhitespace = false;
+
+  for (const char of value) {
+    const isWhitespace = char === " " || char === "\n" || char === "\r" || char === "\t";
+    if (!isWhitespace) {
+      result += char;
+      previousWasWhitespace = false;
+      continue;
+    }
+
+    if (!previousWasWhitespace) {
+      result += " ";
+      previousWasWhitespace = true;
+    }
+  }
+
+  return result.trim();
+}
 
 /** Detects links whose visible text is too generic to describe the destination. */
 export const linkTextRule: A11yRule = {
@@ -15,37 +43,38 @@ export const linkTextRule: A11yRule = {
       "more",
     ]);
 
-    /**
-     * Matches anchor elements and captures their inner content.
-     * NOTE: Regex is used for MVP. Replace with AST parsing for accurate HTML/JSX detection.
-     */
-    const linkRegex = /<a\b[^>]*>([\s\S]*?)<\/a>/gi;
+    const root = parseDocument(text, document.languageId);
+    const diagnostics: vscode.Diagnostic[] = [];
 
-    /**
-     * Removes nested HTML/JSX tags from anchor content before text comparison.
-     * NOTE: Regex is used for MVP. Replace with AST parsing for accurate text extraction.
-     */
-    const nestedTagRegex = /<[^>]+>/g;
+    const visit = (node: ParsedNode): void => {
+      if (isElementNode(node) && node.tagName === "a") {
+        const innerText = normalizeWhitespace(collectTextContent(node)).toLowerCase();
 
-    return [...text.matchAll(linkRegex)].flatMap((match) => {
-      const innerText = (match[1] ?? "")
-        .replace(nestedTagRegex, "")
-        .trim()
-        .toLowerCase();
+        if (genericTexts.has(innerText)) {
+          const loc = getNodeLocation(node);
+          const range = loc
+            ? new vscode.Range(
+                document.positionAt(loc.startOffset),
+                document.positionAt(loc.endOffset),
+              )
+            : new vscode.Range(document.positionAt(0), document.positionAt(0));
 
-      if (!genericTexts.has(innerText)) {
-        return [];
+          diagnostics.push(
+            new vscode.Diagnostic(
+              range,
+              "Texto de link genérico. Use um texto que descreva melhor o destino ou a ação.",
+              vscode.DiagnosticSeverity.Warning,
+            ),
+          );
+        }
       }
 
-      return [
-        makeDiagnostic(
-          document,
-          match.index,
-          match[0].length,
-          "Texto de link genérico. Use um texto que descreva melhor o destino ou a ação.",
-          vscode.DiagnosticSeverity.Warning,
-        ),
-      ];
-    });
+      for (const child of node.children ?? []) {
+        visit(child);
+      }
+    };
+
+    visit(root);
+    return diagnostics;
   },
 };
