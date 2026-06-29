@@ -7,16 +7,14 @@ import {
   attr,
   openingTagLocation,
   isElement,
-  parseBabelAst,
-  getLocRange,
 } from "../utils/htmlAst";
 
 /**
  * Detects <video> elements without a <track kind="captions"> or
  * <track kind="subtitles"> child element.
  *
- * Uses parse5 for HTML files and Babel for JSX/TSX so nested markup is analysed
- * without relying on regex.
+ * Uses parse5 for HTML files — correctly handles nested elements and
+ * eliminates false positives from the regex approach.
  *
  * WCAG 1.2.2 Captions (Prerecorded) (Level A)
  */
@@ -26,9 +24,11 @@ export const videoTrackRule: A11yRule = {
     if (document.languageId === "html") {
       return checkWithAst(text, document);
     }
-    return checkWithParser(text, document);
+    return checkWithRegex(text, document);
   },
 };
+
+// ─── AST strategy (HTML) ─────────────────────────────────────────────────────
 
 function checkWithAst(
   text: string,
@@ -42,6 +42,7 @@ function checkWithAst(
       return;
     }
 
+    // Check all descendants for a qualifying <track> element
     let hasCaptionTrack = false;
 
     walkTree(node, (child) => {
@@ -69,7 +70,7 @@ function checkWithAst(
     diagnostics.push(
       new vscode.Diagnostic(
         range,
-        'Vídeo sem legenda. Adicione um elemento <track kind="captions"> ou <track kind="subtitles"> para tornar o conteúdo acessível a pessoas surdas ou com dificuldade auditiva.',
+        'Vídeo sem legenda. Adicione um elemento track com kind="captions" ou kind="subtitles" para tornar o conteúdo acessível a pessoas surdas ou com dificuldade auditiva.',
         vscode.DiagnosticSeverity.Warning,
       ),
     );
@@ -78,104 +79,31 @@ function checkWithAst(
   return diagnostics;
 }
 
-function checkWithParser(
+// ─── Regex fallback (JSX / TSX) ──────────────────────────────────────────────
+
+function checkWithRegex(
   text: string,
   document: vscode.TextDocument,
 ): vscode.Diagnostic[] {
-  const diagnostics: vscode.Diagnostic[] = [];
+  /**
+   * NOTE: Regex fallback for JSX/TSX. Replace with @babel/parser in a future phase.
+   */
+  const videoRegex = /<video\b[^>]*>([\s\S]*?)<\/video>/gi;
+  const trackRegex =
+    /<track\b[^>]*\bkind\s*=\s*(["'])(?:captions|subtitles)\1[^>]*>/i;
 
-  try {
-    const ast = parseBabelAst(text);
-
-    const visit = (node: any) => {
-      if (!node || typeof node !== "object") {
-        return;
-      }
-
-      if (node.type === "JSXElement") {
-        const elementName = node.openingElement?.name?.type === "JSXIdentifier"
-          ? node.openingElement.name.name
-          : undefined;
-
-        if (elementName === "video") {
-          let hasCaptionTrack = false;
-          const visitChildren = (child: any) => {
-            if (!child || typeof child !== "object") {
-              return;
-            }
-
-            if (child.type === "JSXElement") {
-              const childName = child.openingElement?.name?.type === "JSXIdentifier"
-                ? child.openingElement.name.name
-                : undefined;
-              if (childName === "track") {
-                const kind = readAttributeValue(child, "kind");
-                if (kind === "captions" || kind === "subtitles") {
-                  hasCaptionTrack = true;
-                  return;
-                }
-              }
-            }
-
-            for (const value of Object.values(child)) {
-              if (value && typeof value === "object") {
-                visitChildren(value);
-              }
-            }
-          };
-
-          for (const child of node.children ?? []) {
-            visitChildren(child);
-          }
-
-          if (!hasCaptionTrack) {
-            const range = getLocRange(document, node.openingElement);
-            diagnostics.push(
-              new vscode.Diagnostic(
-                range,
-                'Vídeo sem legenda. Adicione um elemento <track kind="captions"> ou <track kind="subtitles"> para tornar o conteúdo acessível a pessoas surdas ou com dificuldade auditiva.',
-                vscode.DiagnosticSeverity.Warning,
-              ),
-            );
-          }
-        }
-      }
-
-      for (const value of Object.values(node)) {
-        if (value && typeof value === "object") {
-          visit(value);
-        }
-      }
-    };
-
-    visit(ast.program);
-  } catch {
-    return [];
-  }
-
-  return diagnostics;
-}
-
-function readAttributeValue(node: any, attributeName: string): string | undefined {
-  for (const attribute of node.openingElement?.attributes ?? []) {
-    if (attribute.name?.type !== "JSXIdentifier" || attribute.name.name !== attributeName) {
-      continue;
+  return [...text.matchAll(videoRegex)].flatMap((match) => {
+    if (trackRegex.test(match[1] ?? "")) {
+      return [];
     }
-
-    if (attribute.value?.type === "StringLiteral") {
-      return attribute.value.value;
-    }
-
-    if (attribute.value?.type === "JSXExpressionContainer") {
-      const expression = attribute.value.expression;
-      if (expression?.type === "StringLiteral") {
-        return expression.value;
-      }
-      if (expression?.type === "TemplateLiteral" && expression.expressions.length === 0) {
-        return expression.quasis[0]?.value?.cooked;
-      }
-    }
-  }
-
-  return undefined;
+    return [
+      makeDiagnostic(
+        document,
+        match.index,
+        match[0].length,
+        'Vídeo sem legenda. Adicione um elemento track com kind="captions" ou kind="subtitles" para tornar o conteúdo acessível a pessoas surdas ou com dificuldade auditiva.',
+        vscode.DiagnosticSeverity.Warning,
+      ),
+    ];
+  });
 }
