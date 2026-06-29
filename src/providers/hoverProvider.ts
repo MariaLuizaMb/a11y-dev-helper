@@ -90,7 +90,7 @@ const RULE_DOCS: Record<string, { wcag: string; url: string; tip: string }> = {
   "iframe-missing-title": {
     wcag: "WCAG 4.1.2 Name, Role, Value (Nível A)",
     url: "https://www.w3.org/WAI/WCAG21/Understanding/name-role-value.html",
-    tip: 'Adicione title="Descrição do frame" ao iframe.',
+    tip: 'Adicione `title="Descrição do frame"` ao iframe.',
   },
   "table-missing-caption": {
     wcag: "WCAG 1.3.1 Info and Relationships (Nível A)",
