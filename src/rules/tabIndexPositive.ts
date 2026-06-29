@@ -1,8 +1,7 @@
-// src/rules/buttonName.ts
+// src/rules/tabIndexPositive.ts
 import * as vscode from "vscode";
-import { A11yRule, makeDiagnostic } from "../utils/diagnostics";
+import { A11yRule } from "../utils/diagnostics";
 import {
-  collectTextContent,
   getAttr,
   getNodeLocation,
   isElementNode,
@@ -10,21 +9,19 @@ import {
   type ParsedNode,
 } from "../utils/htmlAst";
 
-/** Detects buttons without visible text or another accessible name. */
-export const buttonNameRule: A11yRule = {
-  id: "button-missing-name",
+/** Detects elements with tabIndex/tabindex greater than 0, which disrupts natural tab order. */
+export const tabIndexPositiveRule: A11yRule = {
+  id: "tabindex-positive",
   check(text, document) {
     const root = parseDocument(text, document.languageId);
     const diagnostics: vscode.Diagnostic[] = [];
 
     const visit = (node: ParsedNode): void => {
-      if (isElementNode(node) && node.tagName === "button") {
-        const hasAccessibleName = ["aria-label", "aria-labelledby", "title"].some(
-          (name) => Boolean(getAttr(node, name)),
-        );
-        const visibleText = collectTextContent(node).trim();
+      if (isElementNode(node)) {
+        const value = getAttr(node, "tabindex");
+        const parsedValue = value !== undefined ? Number.parseInt(value, 10) : Number.NaN;
 
-        if (!hasAccessibleName && visibleText.length === 0) {
+        if (!Number.isNaN(parsedValue) && parsedValue > 0) {
           const loc = getNodeLocation(node);
           const range = loc
             ? new vscode.Range(
@@ -36,7 +33,7 @@ export const buttonNameRule: A11yRule = {
           diagnostics.push(
             new vscode.Diagnostic(
               range,
-              "Botão sem nome acessível. Adicione um texto visível, aria-label ou title.",
+              "tabIndex com valor positivo altera a ordem natural de foco e pode confundir usuários de teclado. Prefira tabIndex={0} ou tabIndex={-1}.",
               vscode.DiagnosticSeverity.Warning,
             ),
           );

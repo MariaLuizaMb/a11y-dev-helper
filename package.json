@@ -1,13 +1,27 @@
 {
   "name": "a11y-dev-helper",
-  "displayName": "a11y-dev-helper",
-  "description": "VS Code extension to detect basic accessibility issues in HTML and JSX.",
-  "version": "0.0.1",
+  "displayName": "A11y Dev Helper",
+  "description": "Detecta problemas comuns de acessibilidade em HTML, JSX e TSX com 26 regras WCAG 2.1.",
+  "version": "0.1.0",
+  "publisher": "seu-publisher-id",
+  "icon": "images/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/seu-usuario/a11y-dev-helper"
+  },
   "engines": {
     "vscode": "^1.120.0"
   },
   "categories": [
-    "Other"
+    "Linters",
+    "Education"
+  ],
+  "keywords": [
+    "accessibility",
+    "a11y",
+    "wcag",
+    "html",
+    "jsx"
   ],
   "activationEvents": [
     "onLanguage:html",
@@ -21,25 +35,38 @@
       "properties": {
         "a11yDevHelper.rules": {
           "type": "object",
-          "description": "Enable or disable individual accessibility rules.",
+          "description": "Habilita ou desabilita regras individuais de acessibilidade.",
           "default": {
             "img-missing-alt": true,
-            "link-generic-text": true,
-            "div-span-onclick": true,
-            "autofocus": true,
             "html-missing-lang": true,
+            "link-generic-text": true,
+            "link-missing-href": true,
+            "link-empty": true,
+            "button-missing-name": true,
+            "button-emoji-only": true,
+            "button-only-svg": true,
+            "div-span-onclick": true,
+            "clickable-no-keyboard-support": true,
+            "autofocus": true,
             "input-missing-label": true,
-            "button-missing-name": true
+            "input-placeholder-no-label": true,
+            "select-missing-label": true,
+            "fieldset-missing-legend": true,
+            "label-missing-for-id": true,
+            "heading-order": true,
+            "iframe-missing-title": true,
+            "table-missing-caption": true,
+            "video-missing-track": true,
+            "tabindex-positive": true,
+            "aria-invalid-role": true,
+            "aria-referenced-id": true,
+            "duplicate-id": true,
+            "color-contrast": true,
+            "small-font-size": true
           }
         }
       }
-    },
-    "commands": [
-      {
-        "command": "a11y-dev-helper.helloWorld",
-        "title": "Hello World"
-      }
-    ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
@@ -47,7 +74,13 @@
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src",
-    "test": "vscode-test"
+    "test": "vscode-test",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "dependencies": {
+    "@babel/parser": "^7.27.0",
+    "parse5": "^7.2.1"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
@@ -55,6 +88,7 @@
     "@types/vscode": "^1.120.0",
     "@vscode/test-cli": "^0.0.11",
     "@vscode/test-electron": "^2.5.2",
+    "@vscode/vsce": "^3.0.0",
     "eslint": "^9.39.3",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.56.1"

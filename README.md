@@ -1,145 +1,72 @@
 # A11y Dev Helper
 
-A11y Dev Helper é uma extensão para Visual Studio Code que ajuda desenvolvedores a identificar problemas básicos de acessibilidade enquanto escrevem HTML, JSX e TSX.
+Extensão para VS Code que detecta problemas comuns de acessibilidade em arquivos **HTML**, **JSX** e **TSX** enquanto você programa.
 
-A ideia da extensão é trazer sinais rápidos e educativos para dentro do fluxo normal de desenvolvimento. Em vez de deixar a acessibilidade apenas para revisões finais, auditorias manuais ou ferramentas externas, a extensão mostra avisos diretamente no painel `Problems` do VS Code enquanto o arquivo está sendo editado.
+> ⚠️ Esta extensão é uma ferramenta educativa de análise estática. Ela aponta padrões comuns de problemas, mas não garante conformidade completa com WCAG.
 
-## Qual problema ela resolve
+---
 
-Muitos problemas de acessibilidade aparecem por pequenos descuidos no código:
+## Funcionalidades
 
-- imagens sem `alt`;
-- links com textos genéricos;
-- campos de formulário sem nome acessível;
-- botões sem texto ou rótulo acessível;
-- uso de `div` ou `span` como elemento clicável;
-- ausência de `lang` na tag `<html>`;
-- uso de `autofocus`.
+- **26 regras** cobrindo critérios WCAG 2.1 nível A e AA
+- Diagnósticos em tempo real na aba **Problems** (`Ctrl+Shift+M`)
+- **Quick Fix** com `Ctrl+.` para correções automáticas
+- **Hover** com explicação do critério WCAG violado e link para documentação
+- **Status bar** com contagem de problemas no arquivo atual
+- **Output channel** com log de execução (`View → Output → A11y Dev Helper`)
+- Ativar/desativar regras individualmente nas configurações
 
-Esses pontos parecem simples, mas afetam diretamente pessoas que usam leitores de tela, navegação por teclado ou outras tecnologias assistivas. A extensão atua como um lembrete imediato para corrigir esses casos ainda durante a implementação.
+---
 
-## Diferencial
+## Regras implementadas
 
-O diferencial da A11y Dev Helper é ser simples, local e fácil de evoluir.
+| ID                              | Descrição                                               | WCAG     |
+| ------------------------------- | ------------------------------------------------------- | -------- |
+| `img-missing-alt`               | `<img>` sem atributo `alt`                              | 1.1.1 A  |
+| `html-missing-lang`             | `<html>` sem `lang`                                     | 3.1.1 A  |
+| `link-generic-text`             | Link com texto genérico ("clique aqui")                 | 2.4.4 A  |
+| `link-missing-href`             | `<a>` sem `href`                                        | 2.1.1 A  |
+| `link-empty`                    | Link com href mas sem texto                             | 2.4.4 A  |
+| `button-missing-name`           | Botão sem nome acessível                                | 4.1.2 A  |
+| `button-emoji-only`             | Botão com apenas emoji                                  | 4.1.2 A  |
+| `button-only-svg`               | Botão com apenas SVG sem nome                           | 4.1.2 A  |
+| `div-span-onclick`              | `div`/`span` com `onClick`                              | 2.1.1 A  |
+| `clickable-no-keyboard-support` | Elemento clicável sem suporte a teclado                 | 2.1.1 A  |
+| `autofocus`                     | Uso de `autofocus` / `autoFocus`                        | 2.4.3 A  |
+| `input-missing-label`           | `<input>` sem label                                     | 1.3.1 A  |
+| `input-placeholder-no-label`    | `<input>` usando apenas placeholder                     | 1.3.1 A  |
+| `select-missing-label`          | `<select>` sem label                                    | 1.3.1 A  |
+| `fieldset-missing-legend`       | `<fieldset>` sem `<legend>`                             | 1.3.1 A  |
+| `label-missing-for-id`          | `<label for>` referenciando id inexistente              | 1.3.1 A  |
+| `heading-order`                 | Hierarquia de headings com saltos                       | 1.3.1 A  |
+| `iframe-missing-title`          | `<iframe>` sem `title`                                  | 4.1.2 A  |
+| `table-missing-caption`         | `<table>` sem `<caption>`                               | 1.3.1 A  |
+| `video-missing-track`           | `<video>` sem legenda                                   | 1.2.2 A  |
+| `tabindex-positive`             | `tabIndex` com valor positivo                           | 2.4.3 A  |
+| `aria-invalid-role`             | `role` com valor inválido                               | 4.1.2 A  |
+| `aria-referenced-id`            | `aria-labelledby`/`aria-describedby` com id inexistente | 4.1.2 A  |
+| `duplicate-id`                  | `id` duplicado na página                                | 4.1.1 A  |
+| `color-contrast`                | Contraste insuficiente (inline, Tailwind, CSS-in-JS)    | 1.4.3 AA |
+| `small-font-size`               | `font-size` abaixo de 12px                              | 1.4.4 AA |
 
-Ela não tenta substituir auditorias completas de acessibilidade, testes com usuários ou ferramentas mais robustas como Lighthouse, axe ou validadores especializados. O foco é outro: detectar problemas comuns cedo, com mensagens claras, dentro do editor.
+---
 
-Também existe uma preocupação didática. Cada diagnóstico explica o problema de forma direta e sugere uma correção possível. Isso ajuda quem está começando a aprender acessibilidade a entender o motivo do aviso, não apenas apagar um erro da tela.
+## Configuração
 
-Outro ponto importante é a arquitetura modular. Cada regra fica em um arquivo separado dentro de `src/rules/`, o que facilita adicionar, remover, testar ou melhorar regras individualmente.
-
-## Como funciona
-
-A extensão é ativada quando um arquivo HTML, JSX ou TSX é aberto no VS Code.
-
-Os arquivos suportados são identificados pelos seguintes `languageId`:
-
-- `html`
-- `javascriptreact`
-- `typescriptreact`
-
-Quando um documento suportado é aberto, alterado ou selecionado, a extensão:
-
-1. Lê o texto completo do arquivo.
-2. Carrega as regras habilitadas nas configurações do usuário.
-3. Executa cada regra sobre o texto.
-4. Cria objetos `Diagnostic` do VS Code para os problemas encontrados.
-5. Exibe os avisos no painel `Problems`.
-
-As regras atuais usam expressões regulares como abordagem inicial de MVP. Isso mantém o projeto leve e sem dependências externas, mas também tem limitações conhecidas. Em versões futuras, as regras podem migrar para parsers/AST para lidar melhor com HTML, JSX, TSX e casos dinâmicos.
-
-## Regras disponíveis
-
-| ID | Severidade | O que detecta |
-| --- | --- | --- |
-| `img-missing-alt` | Warning | Imagens `<img>` sem atributo `alt`. |
-| `link-generic-text` | Warning | Links com textos genéricos como "clique aqui", "saiba mais" ou "read more". |
-| `div-span-onclick` | Warning | Elementos `<div>` ou `<span>` com `onClick`. |
-| `autofocus` | Information | Uso de `autofocus` ou `autoFocus`. |
-| `html-missing-lang` | Warning | Tag `<html>` sem atributo `lang`. |
-| `input-missing-label` | Warning | Campos `<input>` sem label acessível. |
-| `button-missing-name` | Warning | Botões sem texto visível ou nome acessível. |
-
-## Configurações
-
-É possível habilitar ou desabilitar regras individualmente pelas configurações do VS Code.
-
-Exemplo em `settings.json`:
+Desabilite regras individualmente em `settings.json`:
 
 ```json
-{
-  "a11yDevHelper.rules": {
-    "img-missing-alt": true,
-    "link-generic-text": true,
-    "div-span-onclick": true,
-    "autofocus": true,
-    "html-missing-lang": true,
-    "input-missing-label": true,
-    "button-missing-name": true
-  }
+"a11yDevHelper.rules": {
+  "autofocus": false,
+  "color-contrast": false
 }
 ```
 
-Para desativar uma regra, defina seu valor como `false`:
+---
 
-```json
-{
-  "a11yDevHelper.rules": {
-    "autofocus": false
-  }
-}
-```
+## Limitações conhecidas
 
-## Estrutura do projeto
-
-```text
-src/
-├── extension.ts
-├── utils/
-│   └── diagnostics.ts
-└── rules/
-    ├── index.ts
-    ├── imgAlt.ts
-    ├── linkText.ts
-    ├── divSpanOnClick.ts
-    ├── autofocus.ts
-    ├── htmlLang.ts
-    ├── inputLabel.ts
-    └── buttonName.ts
-```
-
-`src/extension.ts` cuida da integração com o VS Code: ativação, eventos, debounce, leitura de configuração e envio dos diagnostics.
-
-`src/utils/diagnostics.ts` contém a interface compartilhada `A11yRule` e o helper `makeDiagnostic`.
-
-`src/rules/` contém as regras de acessibilidade. Cada arquivo exporta uma regra isolada, e `src/rules/index.ts` reúne todas no array `allRules`.
-
-## Como rodar localmente
-
-Instale as dependências:
-
-```bash
-npm install
-```
-
-Compile o projeto:
-
-```bash
-npm run compile
-```
-
-Abra o modo de desenvolvimento da extensão:
-
-1. Abra este repositório no VS Code.
-2. Pressione `F5`.
-3. Uma nova janela do VS Code será aberta com a extensão carregada.
-4. Abra um arquivo `.html`, `.jsx` ou `.tsx`.
-5. Veja os avisos no painel `Problems`.
-
-## Como contribuir
-
-Para começar a editar a extensão, leia o guia:
-
-[GUIA_DE_EDICAO.md](./GUIA_DE_EDICAO.md)
-
-Ele explica a estrutura do projeto, como criar novas regras, como testar alterações e quais cuidados manter para preservar o padrão atual.
+- Análise **estática** — não executa o código nem considera estilos externos
+- Contraste de cores cobre apenas estilos **inline**, classes **Tailwind** e **CSS-in-JS** (`sx={{}}`, `styled`)
+- Regras JSX/TSX usam **@babel/parser** — templates dinâmicos podem ter falsos negativos
+- `color-contrast` não resolve variáveis CSS (`var(--cor)`) nem tokens de tema

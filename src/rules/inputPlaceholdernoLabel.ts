@@ -1,15 +1,20 @@
-// src/rules/inputLabel.ts
+// src/rules/inputPlaceholdernoLabel.ts
 import * as vscode from "vscode";
 import { A11yRule, makeDiagnostic } from "../utils/diagnostics";
-import { walkNodes, hasAnyAttribute, getAttrValue } from "../utils/astWalker";
+import {
+  walkNodes,
+  hasAttribute,
+  hasAnyAttribute,
+  getAttrValue,
+} from "../utils/astWalker";
 import type { ParsedNode } from "../utils/htmlAst";
 
 const EXEMPT = new Set(["hidden", "submit", "reset", "button", "image"]);
 const MSG =
-  "Campo sem label acessível. Associe um elemento label, ou use aria-label / aria-labelledby.";
+  "Campo usando placeholder como único rótulo. O placeholder desaparece ao digitar e não substitui um label visível ou aria-label.";
 
-export const inputLabelRule: A11yRule = {
-  id: "input-missing-label",
+export const inputPlaceholderNoLabelRule: A11yRule = {
+  id: "input-placeholder-no-label",
   check(text, document, ast) {
     return ast ? checkAst(document, ast) : checkRegex(text, document);
   },
@@ -19,7 +24,6 @@ function checkAst(
   document: vscode.TextDocument,
   ast: ParsedNode,
 ): vscode.Diagnostic[] {
-  // First pass: collect ids referenced by <label for/htmlFor>
   const labelledIds = new Set<string>();
   walkNodes(ast, (node) => {
     if (node.tagName?.toLowerCase() !== "label") return;
@@ -30,6 +34,7 @@ function checkAst(
   const diagnostics: vscode.Diagnostic[] = [];
   walkNodes(ast, (node) => {
     if (node.tagName?.toLowerCase() !== "input") return;
+    if (!hasAttribute(node, "placeholder")) return;
     const type = (getAttrValue(node, "type") ?? "").toLowerCase();
     if (EXEMPT.has(type)) return;
     if (hasAnyAttribute(node, "aria-label", "aria-labelledby", "title")) return;
@@ -59,23 +64,25 @@ function checkRegex(
       ),
     ].map((m) => m[2] ?? ""),
   );
-  const EXEMPT_RX =
-    /\btype\s*=\s*(["'])(?:hidden|submit|reset|button|image)\1/i;
-  const accRx = /\b(?:aria-label|aria-labelledby|title)\s*=/i;
-  const idRx = /\bid\s*=\s*(["'])([^"']+)\1/i;
-  return [...text.matchAll(/<input\b([^>]*)>/gi)].flatMap((m) => {
-    const attrs = m[1] ?? "";
-    if (EXEMPT_RX.test(attrs) || accRx.test(attrs)) return [];
-    const id = idRx.exec(attrs)?.[2];
-    if (id && labelledIds.has(id)) return [];
-    return [
-      makeDiagnostic(
-        document,
-        m.index,
-        m[0].length,
-        MSG,
-        vscode.DiagnosticSeverity.Warning,
-      ),
-    ];
-  });
+  return [...text.matchAll(/<input\b([^>]*\bplaceholder\s*=[^>]*)>/gi)].flatMap(
+    (m) => {
+      const attrs = m[1] ?? "";
+      if (
+        /\btype\s*=\s*(["'])(?:hidden|submit|reset|button|image)\1/i.test(attrs)
+      )
+        return [];
+      if (/\b(?:aria-label|aria-labelledby|title)\s*=/i.test(attrs)) return [];
+      const id = /\bid\s*=\s*(["'])([^"']+)\1/i.exec(attrs)?.[2];
+      if (id && labelledIds.has(id)) return [];
+      return [
+        makeDiagnostic(
+          document,
+          m.index,
+          m[0].length,
+          MSG,
+          vscode.DiagnosticSeverity.Warning,
+        ),
+      ];
+    },
+  );
 }
